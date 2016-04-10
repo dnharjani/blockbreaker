@@ -117,16 +117,10 @@ public class LinesHandler : MonoBehaviour
 		EdgeCollider2D col = collider.AddComponent<EdgeCollider2D> ();
 		col.transform.parent = thisLine.transform; 
 		col.points = lineVectors.ToArray();
-
-		//col.size = new Vector3 (lineLength, 0.2f, 1f); 
-		//Vector3 midPoint = (startPos + endPos)/2;
-		//col.transform.position = midPoint; 
-		//float angle = (Mathf.Abs (startPos.y - endPos.y) / Mathf.Abs (startPos.x - endPos.x));
-		//if((startPos.y<endPos.y && startPos.x>endPos.x) || (endPos.y<startPos.y && endPos.x>startPos.x))
-		//{
-		//	angle*=-1;
-		//}
-		//angle = Mathf.Rad2Deg * Mathf.Atan (angle);
-		//col.transform.Rotate (0, 0, angle);
 	}
+
+	public void handeLineColission(Collision2D collision, Vector2[] colliderPoints) {
+		
+	}
+
 }
