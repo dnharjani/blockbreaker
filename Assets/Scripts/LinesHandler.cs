@@ -1,20 +1,21 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 
 public class LinesHandler : MonoBehaviour
 {
 	public Color c1 = Color.white;
 	public Color c2 = Color.white;
 	public GameObject PaddleCollider;
-	public static float maxLineJuice = 5f;
-	public static float currentLineJuice = 5f;
+	public static float maxLineJuice = 20f;
+	public static float currentLineJuice = 20f;
 	public static float currentLineJuiceInUse = 0f;
 
 	private LineRenderer currentLine; 
-	private LineRenderer lastLine;
 	private Vector3 mousePos;    
 	private Vector3 startPos;    
 	private Vector3 endPos;    
+	private List<Vector2> currentLineVectors; 
 
 	void Start()
 	{
@@ -22,24 +23,24 @@ public class LinesHandler : MonoBehaviour
 
 	void Update ()
 	{
-		if (currentLineJuice < maxLineJuice) {
-			currentLineJuice += 0.1f;
+		if (!currentLine && currentLineJuice < maxLineJuice) {
+			currentLineJuice += 0.3f;
 			currentLineJuice = Mathf.Min (currentLineJuice, maxLineJuice);
 		}
 
 		if(Input.GetMouseButtonDown(0))
 		{
-			if (lastLine != null) {
-				
-			}
-
 			if (currentLine == null) {
 				currentLine = createLine();
 			}
 
 			mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			mousePos.z = 0.5f;
+			currentLineVectors = new List<Vector2> ();
+			currentLineVectors.Add (new Vector2(mousePos.x, mousePos.y));
+
 			currentLine.SetPosition(0,mousePos);
+			currentLine.SetWidth (0.1f, 0.1f);
 			startPos = mousePos;
 
 			GameManager.slowDownTime ();
@@ -54,20 +55,14 @@ public class LinesHandler : MonoBehaviour
 				Vector3 copy = new Vector3 (startPos.x, startPos.y, startPos.z);
 				Vector3 maxVector = Vector3.MoveTowards (copy, mousePos, currentLineJuice);
 
-				if (Vector3.Distance (startPos, maxVector) > 1) {
-					currentLine.SetPosition(1,maxVector);
-					endPos = maxVector;
-					addColliderToLine(currentLine);
-					lastLine = currentLine;
+				currentLineVectors.Add (new Vector2(maxVector.x, maxVector.y));
 
-					currentLineJuice -= Vector3.Distance (startPos, maxVector);
+				currentLine.SetVertexCount(currentLineVectors.Count);
+				currentLine.SetPosition(currentLineVectors.Count - 1,maxVector);
+				addColliderToLine(currentLine, currentLineVectors);
+				currentLineJuice -= Vector3.Distance (startPos, maxVector);
 
-					currentLine = null;
-
-				} else {
-					Destroy (currentLine.gameObject);
-					currentLine = null;
-				}
+				currentLine = null;
 			}
 
 			currentLineJuiceInUse = 0f;
@@ -77,16 +72,24 @@ public class LinesHandler : MonoBehaviour
 		{
 			if(currentLine)
 			{
-				currentLine.SetVertexCount(2);
 				mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 				mousePos.z = 0;
 
 				Vector3 copy = new Vector3 (startPos.x, startPos.y, startPos.z);
 				Vector3 maxVector = Vector3.MoveTowards (copy, mousePos, currentLineJuice);
 
-				currentLineJuiceInUse = Vector3.Distance (startPos, maxVector);
+				if (Vector3.Distance (copy, maxVector) > 0.1f) {
+					currentLineJuice -= Vector3.Distance (startPos, maxVector);
+					currentLineVectors.Add (new Vector2(maxVector.x, maxVector.y));
 
-				currentLine.SetPosition(1,maxVector);
+					if (currentLineJuice < maxLineJuice) {
+						currentLine.SetVertexCount(currentLineVectors.Count);
+						currentLine.SetPosition(currentLineVectors.Count - 1, maxVector);
+
+						startPos = maxVector;
+					}
+
+				}
 			}
 
 
@@ -98,9 +101,8 @@ public class LinesHandler : MonoBehaviour
 		GameObject Line = new GameObject ("Line");
 		LineRenderer newLine = Line.AddComponent<LineRenderer>();
 
-		//newLine.material = new Material(Shader.Find("Particles/Additive"));
+		newLine.material = new Material(Shader.Find("Particles/Additive"));
 		newLine.SetVertexCount(1);
-		newLine.SetWidth(0.2f,0.2f);
 		newLine.SetColors(Color.white, Color.white);
 		newLine.useWorldSpace = true;
 
@@ -108,22 +110,23 @@ public class LinesHandler : MonoBehaviour
 
 	}
 
-	private void addColliderToLine(LineRenderer thisLine)
+	private void addColliderToLine(LineRenderer thisLine, List<Vector2> lineVectors)
 	{
 		GameObject collider = (GameObject) Instantiate (PaddleCollider);
 
-		BoxCollider2D col = collider.AddComponent<BoxCollider2D> ();
+		EdgeCollider2D col = collider.AddComponent<EdgeCollider2D> ();
 		col.transform.parent = thisLine.transform; 
-		float lineLength = Vector3.Distance (startPos, endPos); 
-		col.size = new Vector3 (lineLength, 0.2f, 1f); 
-		Vector3 midPoint = (startPos + endPos)/2;
-		col.transform.position = midPoint; 
-		float angle = (Mathf.Abs (startPos.y - endPos.y) / Mathf.Abs (startPos.x - endPos.x));
-		if((startPos.y<endPos.y && startPos.x>endPos.x) || (endPos.y<startPos.y && endPos.x>startPos.x))
-		{
-			angle*=-1;
-		}
-		angle = Mathf.Rad2Deg * Mathf.Atan (angle);
-		col.transform.Rotate (0, 0, angle);
+		col.points = lineVectors.ToArray();
+
+		//col.size = new Vector3 (lineLength, 0.2f, 1f); 
+		//Vector3 midPoint = (startPos + endPos)/2;
+		//col.transform.position = midPoint; 
+		//float angle = (Mathf.Abs (startPos.y - endPos.y) / Mathf.Abs (startPos.x - endPos.x));
+		//if((startPos.y<endPos.y && startPos.x>endPos.x) || (endPos.y<startPos.y && endPos.x>startPos.x))
+		//{
+		//	angle*=-1;
+		//}
+		//angle = Mathf.Rad2Deg * Mathf.Atan (angle);
+		//col.transform.Rotate (0, 0, angle);
 	}
 }
