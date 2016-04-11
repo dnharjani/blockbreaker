@@ -22,7 +22,5 @@ public class BallController : MonoBehaviour {
 			this.gameObject.GetComponent<AudioSource> ().Play ();
 			iTween.ShakePosition(GameManager, new Vector3(0.3f, 0.3f, 0f), 0.3f);
 		}
-
-
 	}
 }

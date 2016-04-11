@@ -15,9 +15,12 @@ public class PaddleController : MonoBehaviour {
 	}
 
 	void OnCollisionEnter2D(Collision2D collision) {
-		gameObject.transform.parent.gameObject.GetComponent<LinesHandler> ().handeLineColission (collision, gameObject.GetComponent<EdgeCollider2D> ().points);
+		StartCoroutine (DestroyParent ());
+	}
 
-		Destroy (gameObject);
+	IEnumerator DestroyParent() {
+		yield return new WaitForSeconds (0.1f);
+		Destroy (gameObject.transform.parent.gameObject);
 	}
 
 }
